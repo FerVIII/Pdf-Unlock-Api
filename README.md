@@ -1,100 +1,131 @@
-# 📂 PDF Unlock API
+# PDF Unlock API
 
-API en **FastAPI** que elimina las restricciones de propietario en documentos PDF (copiar, imprimir, editar, anotar) sin necesidad de contraseña de apertura.  
-Incluye autenticación por **token + client id** mediante middleware.
-
----
-
-## 🚀 Características
-
-- Middleware que valida:
-  - `Authorization: Bearer <token>`
-  - `X-Client-Id`
-- Endpoint `/unlock`:
-  - Recibe un PDF con restricciones.
-  - Devuelve el PDF sin limitaciones de permisos.
-- Endpoint `/health` para comprobar estado.
-- Código modular: fácil de mantener y escalar.
+API para desbloquear restricciones de PDFs protegidos por propietario (copiar, imprimir, editar).  
+No afecta PDFs protegidos con contraseña de apertura, solo restricciones de propietario.
 
 ---
 
-## 📂 Estructura del proyecto
+## Requisitos
 
-```
-project/
-│── app/
-│   ├── __init__.py
-│   ├── main.py          # Punto de entrada FastAPI
-│   ├── config.py        # Configuración (tokens, client id)
-│   ├── middlewares.py   # Middleware de autenticación
-│   ├── routers/
-│   │   ├── __init__.py
-│   │   ├── unlock.py    # Endpoint /unlock
-│   │   └── health.py    # Endpoint /health
-│   └── utils/
-│       └── pdf_tools.py # Lógica para desbloquear PDFs
-│
-└── requirements.txt
-```
+Python 3.10+  
+Instala dependencias:
 
----
-
-## ⚙️ Requisitos
-
-```bash
+\`\`\`bash
 pip install -r requirements.txt
-```
+\`\`\`
 
-Dependencias principales:
+O con conda:
 
-- [fastapi](https://fastapi.tiangolo.com/)
-- [uvicorn](https://www.uvicorn.org/)
-- [python-multipart](https://andrew-d.github.io/python-multipart/)
-- [pikepdf](https://pikepdf.readthedocs.io/)
-
----
-
-## ▶️ Ejecutar en local
-
-```bash
-uvicorn app.main:app --reload --port 8000
-```
-
-La API quedará disponible en:  
-👉 [http://localhost:8000/docs](http://localhost:8000/docs)
+\`\`\`bash
+conda create -n api_pdf python=3.10
+conda activate api_pdf
+pip install -r requirements.txt
+\`\`\`
 
 ---
 
-## 📡 Ejemplos de uso
+## Variables de entorno
 
-### Verificar estado
+Crea un archivo `.env` en la raíz del proyecto:
 
-```bash
-curl http://localhost:8000/health
-```
+\`\`\`env
+API_TOKEN=mi-token-secreto
+CLIENT_ID=cliente-1
+\`\`\`
 
-### Desbloquear un PDF
-
-```bash
-curl -X POST "http://localhost:8000/unlock" \
-  -H "Authorization: Bearer mi-token-secreto" \
-  -H "X-Client-Id: cliente-1" \
-  -F "file=@/ruta/a/mi.pdf" \
-  --output desbloqueado.pdf
-```
+Si no existen, se usarán valores por defecto para desarrollo.
 
 ---
 
-## 🔐 Seguridad y buenas prácticas
+## Estructura
 
-- Configura `API_TOKEN` y `CLIENT_ID` como **variables de entorno**.
-- Usa **HTTPS** en producción.
-- Añade control de tamaño máximo de archivos y limpieza segura de temporales.
-- La API debe usarse solo en PDFs sobre los que tengas derechos de modificación.
+\`\`\`
+app/
+├── main.py # Entrada de la API
+├── middlewares.py # Middleware de autenticación
+├── routers/
+│ ├── health.py # Endpoint /health
+│ └── unlock.py # Endpoint /unlock
+└── utils/
+└── pdf_tools.py # Función unlock_pdf
+uploads/ # Archivos PDF subidos
+unlocked/ # Archivos PDF desbloqueados
+\`\`\`
 
 ---
 
-## 📄 Licencia
+## Ejecutar localmente
 
-Este proyecto se distribuye bajo licencia MIT.  
-Úsalo, modifícalo y compártelo libremente, siempre con responsabilidad.
+\`\`\`bash
+uvicorn app.main:app --reload --host 127.0.0.1 --port 8000
+\`\`\`
+
+La API estará disponible en:
+
+- http://127.0.0.1:8000
+- Swagger docs: http://127.0.0.1:8000/docs
+
+---
+
+## Endpoints
+
+### 1. Health check
+
+\`\`\`http
+GET /health
+Headers:
+Authorization: Bearer <API_TOKEN>
+X-Client-Id: <CLIENT_ID>
+\`\`\`
+
+Respuesta:
+
+\`\`\`json
+{
+"status": "ok",
+"version": "1.1.0"
+}
+\`\`\`
+
+---
+
+### 2. Unlock PDF
+
+\`\`\`http
+POST /unlock
+Headers:
+Authorization: Bearer <API_TOKEN>
+X-Client-Id: <CLIENT_ID>
+Form-data:
+file: <archivo.pdf>
+\`\`\`
+
+Respuesta:
+
+\`\`\`json
+{
+"message": "PDF desbloqueado correctamente",
+"unlocked_file": "unlocked/<archivo.pdf>"
+}
+\`\`\`
+
+---
+
+## Curl de prueba
+
+\`\`\`bash
+curl -X POST "http://127.0.0.1:8000/unlock" \
+ -H "Authorization: Bearer mi-token-secreto" \
+ -H "X-Client-Id: cliente-1" \
+ -F "file=@/ruta/a/mi.pdf" \
+ --output desbloqueado.pdf
+\`\`\`
+
+---
+
+## Notas
+
+- La API desbloquea restricciones de propietario sin necesidad de contraseña.
+- Las validaciones de seguridad están manejadas por el middleware global.
+- `/docs` permite usar el botón **Authorize** para probar token y client-id.
+  EOF
